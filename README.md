@@ -21,3 +21,7 @@ Het shell script 'start_server.sh' gaat er vanuit dat de locatie voor dit script
 ## Piper documentatie
 [Piper documentatie](https://tderflinger.github.io/piper-docs/guides/usage/)
 
+## Screenshot
+
+![Screenshot](Screenshot.png)
+
