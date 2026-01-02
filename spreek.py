@@ -8,6 +8,7 @@ import os
 import subprocess
 import datetime
 import shutil
+import operator
 
 # sudo apt-get install python3-tk
 import tkinter as tk  
@@ -17,40 +18,30 @@ from tkinter.scrolledtext import ScrolledText
 
 # versie: 2026-01-01 11:27
 
+"""
+# versie: 2026-01-02 13:35
+De beschikbare stemmen ophalen door recursief de 'voices' directory te doorlopen
+De pop-up verwijderd die je kreeg na het kiezen van een stem
+Pack layout omgezet naar Grid layout
+GUI geschikt gemaakt voor het instellen van SynthesisConfig
+SynthesisConfig instellingen laten meenemen bij de uitvoering
+"""
 
 # (ffmpeg moet ook geinstalleerd zijn)
 # In de directory waar dit script staat worden ook verwacht:
 # 1. een directory 'invoer' waar de te spreken teksten in moeten staan
 # 2. een directory 'voices' waar de stemmen in moeten staan
 # de uitvoer-directory met de mp3's komt ook in de directory waar dit script staat
+# de naam van de directory waarin de stem staat wordt toegevoegd aan het einde van de namen van de mp3-bestanden
 
 # waarden instellen
 now = datetime.datetime.now()
 nu = now.strftime("%Y-%m-%d-%H-%M")
 
-#stem = "voice/nl_BE-nathalie-medium.onnx"
-#stemnaam = 'nathalie'
 dirnaam = 'invoer'
 uitvoermap = 'uitvoer-' + nu # bestanden mogen niet al bestaan
-# toevoeging = ' - nathalie'
 os.mkdir(uitvoermap)
 
-"""
-num_symbols=config["num_symbols"],
-num_speakers=config["num_speakers"],
-sample_rate=config["audio"]["sample_rate"],
-noise_scale=inference.get("noise_scale", 0.667),
-length_scale=inference.get("length_scale", 1.0),
-noise_w=inference.get("noise_w", 0.8),
-"""
-
-syn_config = SynthesisConfig(
-    volume=1.0,          # Volume multiplier 0.5?
-    length_scale=1.0,    # Speaking speed (higher = slower)
-    noise_scale=0.7,     # Audio variation 0.667
-    noise_w_scale=0.9,   # Speaking variation 0.8
-    normalize_audio=True # Automatic volume normalization
-)
 
 def vrij(): # schijfruimte opvragen
     # opslag gebruik opvragen
@@ -99,6 +90,14 @@ def leesvoor(tekstbestand):
         for regel in bestand:
             tekst = tekst + regel
     voice = PiperVoice.load(stem)
+    
+    syn_config = SynthesisConfig(
+    volume=float(volume.get()),       # Volume multiplier
+    length_scale=float(vertraging.get()),  # Speaking speed (higher = slower)
+    noise_scale=float(audio_variatie.get()),   # Audio variation 
+    noise_w_scale=float(spreek_variatie.get()),   # Speaking variation
+    normalize_audio=bool(normalisatie.get()) # Automatic volume normalization
+)
     with wave.open(uitvoer, "wb") as wav_file:
         voice.synthesize_wav(tekst, 
         wav_file,
@@ -166,11 +165,31 @@ def stem_gekozen(event):
     global stemnaam
     stem = stem_var.get()
     lijst = stem.split('/')
-    stemnaam = lijst[-2]
-    showinfo(
-        title='Result',
-        message=f'Je hebt {stemnaam} gekozen als stem!'
-    )
+    stemnaam = lijst[-2] # naam van de directory waar het .onnx in staat
+    # 'stemnaam' wordt aan de naam van de mp3 toegevoegd
+
+# stemmen ophalen als tuple
+def haal_stemmen_op():
+    # lees directory voices uit
+    bestanden = []
+    haal_stem_bestanden('voices', bestanden)
+    bestanden.sort()
+    return bestanden
+    
+def haal_stem_bestanden(dirnaam, bestanden): 
+    # .onnx bestanden, recursieve functie
+    bestandenlijst = os.listdir(dirnaam)
+
+    metpaden = map(lambda naam: os.path.join(dirnaam, naam), bestandenlijst)
+            
+    for item in metpaden:
+        if os.path.isfile(item):
+            naambestand = os.path.basename(item)
+            if naambestand.endswith('.onnx'):
+                tekst_item = (item, naambestand) # tuple
+                bestanden.append(tekst_item)
+        else:
+            haal_stem_bestanden(item, bestanden)
 
 
 # einde functies
@@ -203,45 +222,78 @@ try:
 except tk.TclError:
     print("icon file not found.")
 
+
+# grid 12x2
+root.rowconfigure(0, weight=1)
+root.rowconfigure(1, weight=1)
+root.rowconfigure(2, weight=1)
+root.rowconfigure(3, weight=1)
+root.rowconfigure(4, weight=1)
+root.rowconfigure(5, weight=1)
+root.rowconfigure(6, weight=1)
+root.rowconfigure(7, weight=1)
+root.rowconfigure(8, weight=1)
+root.rowconfigure(9, weight=1)
+root.rowconfigure(10, weight=5)
+root.rowconfigure(11, weight=1)
+root.columnconfigure(0, weight=1)
+root.columnconfigure(1, weight=1)
+
+
+stembestanden = haal_stemmen_op()
+
+# verwijder de tweede waarde van elke tuple en geef een lijst met alleen de eerste waarden van de tuples, zet de lijst om naar een tuple
+stemmen_tuple = tuple(list(map(operator.itemgetter(0), stembestanden))) 
+
 # stem keuze
+
+label1titel = ttk.Label(root, text='Stem', font=("Helvetica", 10), anchor=tk.CENTER)
+label1titel.grid(column=1, row=0, sticky=tk.EW, padx=5, pady=5)
+
 stem_var = tk.StringVar()
 combobox = ttk.Combobox(root, textvariable=stem_var)
-combobox['values'] = (
-'voices/nl/nathalie/nl_BE-nathalie-medium.onnx', 
-'voices/nl/mls/nl_NL-mls-medium.onnx', 
-'voices/de/mls/de_DE-mls-medium.onnx',
-'voices/en/alba/en_GB-alba-medium.onnx',
-'voices/en/aru/en_GB-aru-medium.onnx',
-'voices/en/cori/en_GB-cori-high.onnx',
-'voices/en/jenny/en_GB-jenny_dioco-medium.onnx',
-'voices/en/semaine/en_GB-semaine-medium.onnx',
-'voices/en/vctk/en_GB-vctk-medium.onnx')
+combobox['values'] = stemmen_tuple
 combobox['state'] = 'readonly'
-combobox.pack(padx=250, pady=10, expand=True,fill=tk.BOTH)
+combobox.grid(column=1, row=1, sticky=tk.EW, padx=5, pady=5)
 combobox.bind('<<ComboboxSelected>>', stem_gekozen)
 
 # vrije ruimte
 text_var = tk.StringVar()
 text_var.set(vrij())
 
+label2titel = ttk.Label(root, text='Vrije ruimte', font=("Helvetica", 10), anchor=tk.CENTER)
+label2titel.grid(column=1, row=2, sticky=tk.EW, padx=5, pady=5)
+
 label1 = ttk.Label(root, text=text_var.get(), font=("Helvetica", 14), anchor=tk.CENTER)
-label1.pack(padx=10, pady=10, expand=True,fill=tk.BOTH)
+label1.grid(column=1, row=3, sticky=tk.EW, padx=5, pady=5)
 
 # nu bezig met bestand ...
+
+label3titel = ttk.Label(root, text='Bezig met:', font=("Helvetica", 10), anchor=tk.CENTER)
+label3titel.grid(column=1, row=4, sticky=tk.EW, padx=5, pady=5)
+
 label2 = ttk.Label(root, text='', font=("Helvetica", 14), anchor=tk.CENTER)
-label2.pack(padx=10, pady=10, expand=True,fill=tk.BOTH)
+label2.grid(column=1, row=5, sticky=tk.EW, padx=5, pady=5)
 
 # naam uitvoermap tonen
+
+label4titel = ttk.Label(root, text='Uitvoer directory', font=("Helvetica", 10), anchor=tk.CENTER)
+label4titel.grid(column=1, row=6, sticky=tk.EW, padx=5, pady=5)
+
 label3 = ttk.Label(root, text=uitvoermap,font=("Helvetica", 14), anchor=tk.CENTER)
-label3.pack(padx=10, pady=10, expand=True,fill=tk.BOTH)
+label3.grid(column=1, row=7, sticky=tk.EW, padx=5, pady=5)
 
 # startknop
+
+label5titel = ttk.Label(root, text='Start knop', font=("Helvetica", 10), anchor=tk.CENTER)
+label5titel.grid(column=1, row=8, sticky=tk.EW, padx=5, pady=5)
+
 button = ttk.Button(root, text='Start', command=start_knop)
-button.pack()
+button.grid(column=1, row=9, sticky=tk.EW, padx=5, pady=5)
 
 # frame
 frame = ttk.Frame(root)
-frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+frame.grid(column=0, row=10, sticky=tk.EW, padx=5, pady=5, columnspan=2)
 
 # tekst uitvoer gedeelte
 text = ScrolledText(frame, height=8)
@@ -258,7 +310,86 @@ text['state'] = 'normal'
 
 # exit knop
 exit_button = ttk.Button(root, text='Exit', command=lambda: root.quit())
-exit_button.pack(ipadx=5, ipady=5, expand=True)
+exit_button.grid(column=1, row=11, sticky=tk.EW, padx=5, pady=5)
+
+# stemvariabelen instellen
+
+schaal = (0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0)
+
+# label Volume
+label10titel = ttk.Label(root, text='Volume', font=("Helvetica", 10), anchor=tk.CENTER)
+label10titel.grid(column=0, row=0, sticky=tk.EW, padx=5, pady=5)
+
+volume = tk.StringVar(value=1.0)
+volume_spin_box = ttk.Spinbox(
+    root,
+    from_=0.0,
+    to=2.0,
+    values=schaal,
+    textvariable=volume,
+    wrap=True)
+
+volume_spin_box.grid(column=0, row=1, sticky=tk.NS, padx=5, pady=5)
+
+# label Vertraging
+label12titel = ttk.Label(root, text='Vertraging', font=("Helvetica", 10), anchor=tk.CENTER)
+label12titel.grid(column=0, row=2, sticky=tk.EW, padx=5, pady=5)
+
+vertraging = tk.StringVar(value=1.0)
+vertraging_spin_box = ttk.Spinbox(
+    root,
+    from_=0.0,
+    to=2.0,
+    values=schaal,
+    textvariable=vertraging,
+    wrap=True)
+
+vertraging_spin_box.grid(column=0, row=3, sticky=tk.NS, padx=5, pady=5)
+
+# label Audio variatie
+label14titel = ttk.Label(root, text='Audio variatie', font=("Helvetica", 10), anchor=tk.CENTER)
+label14titel.grid(column=0, row=4, sticky=tk.EW, padx=5, pady=5)
+
+audio_variatie = tk.StringVar(value=0.7)
+audio_variatie_spin_box = ttk.Spinbox(
+    root,
+    from_=0.0,
+    to=2.0,
+    values=schaal,
+    textvariable=audio_variatie,
+    wrap=True)
+
+audio_variatie_spin_box.grid(column=0, row=5, sticky=tk.NS, padx=5, pady=5)
+
+# label Spreek variatie
+label16titel = ttk.Label(root, text='Spreek variatie', font=("Helvetica", 10), anchor=tk.CENTER)
+label16titel.grid(column=0, row=6, sticky=tk.EW, padx=5, pady=5)
+
+spreek_variatie = tk.StringVar(value=0.9)
+spreek_variatie_spin_box = ttk.Spinbox(
+    root,
+    from_=0.0,
+    to=2.0,
+    values=schaal,
+    textvariable=spreek_variatie,
+    wrap=True)
+
+spreek_variatie_spin_box.grid(column=0, row=7, sticky=tk.NS, padx=5, pady=5)
+
+# label Normalisatie
+label18titel = ttk.Label(root, text='Normalisatie', font=("Helvetica", 10), anchor=tk.CENTER)
+label18titel.grid(column=0, row=8, sticky=tk.EW, padx=5, pady=5)
+
+normalisatie = tk.BooleanVar(value=True)
+
+checkbox = ttk.Checkbutton(
+    root,
+    text='Normaliseren',
+    variable=normalisatie
+)
+
+checkbox.grid(column=0, row=9, sticky=tk.NS, padx=5, pady=5)
+
 
 # start GUI
 root.mainloop()
