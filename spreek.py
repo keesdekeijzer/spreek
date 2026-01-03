@@ -27,6 +27,12 @@ GUI geschikt gemaakt voor het instellen van SynthesisConfig
 SynthesisConfig instellingen laten meenemen bij de uitvoering
 """
 
+"""
+# versie 2026-01-03 20:55
+Aanpassing gedaan om de beschikbare schijfruimte vaker te laten updaten
+"""
+
+
 # (ffmpeg moet ook geinstalleerd zijn)
 # In de directory waar dit script staat worden ook verwacht:
 # 1. een directory 'invoer' waar de te spreken teksten in moeten staan
@@ -102,11 +108,13 @@ def leesvoor(tekstbestand):
         voice.synthesize_wav(tekst, 
         wav_file,
         syn_config=syn_config)
-
+    text_var.set(vrij())
     voeg_tekst_toe(f'Klaar met: {uitvoer}')
     uitvoer_mp3 = maak_mp3(uitvoer)
+    text_var.set(vrij())
     voeg_tekst_toe(f'Aangemaakt: {uitvoer_mp3}')
     verwijder_bestand(uitvoer)
+    text_var.set(vrij())
     root.update() # GUI bijwerken
 
 def start_knop():
