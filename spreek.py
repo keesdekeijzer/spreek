@@ -30,6 +30,7 @@ SynthesisConfig instellingen laten meenemen bij de uitvoering
 """
 # versie 2026-01-03 20:55
 Aanpassing gedaan om de beschikbare schijfruimte vaker te laten updaten
+Defaultwaarden aangepast en font kleiner gezet
 """
 
 
@@ -52,7 +53,8 @@ os.mkdir(uitvoermap)
 def vrij(): # schijfruimte opvragen
     # opslag gebruik opvragen
     total, used, free = shutil.disk_usage("/home")
-    f_free = "{:.2f} GiB".format(free // (2**30))
+    freegb = free / (2**30)
+    f_free = f"{freegb:.2f} GiB"
     perc = str(int(free / total * 100))
     beschikbaar = f'Opslag: {perc} % vrij ({f_free})'
     return beschikbaar
@@ -272,7 +274,7 @@ text_var.set(vrij())
 label2titel = ttk.Label(root, text='Vrije ruimte', font=("Helvetica", 10), anchor=tk.CENTER)
 label2titel.grid(column=1, row=2, sticky=tk.EW, padx=5, pady=5)
 
-label1 = ttk.Label(root, text=text_var.get(), font=("Helvetica", 14), anchor=tk.CENTER)
+label1 = ttk.Label(root, text=text_var.get(), font=("Helvetica", 12), anchor=tk.CENTER)
 label1.grid(column=1, row=3, sticky=tk.EW, padx=5, pady=5)
 
 # nu bezig met bestand ...
@@ -280,7 +282,7 @@ label1.grid(column=1, row=3, sticky=tk.EW, padx=5, pady=5)
 label3titel = ttk.Label(root, text='Bezig met:', font=("Helvetica", 10), anchor=tk.CENTER)
 label3titel.grid(column=1, row=4, sticky=tk.EW, padx=5, pady=5)
 
-label2 = ttk.Label(root, text='', font=("Helvetica", 14), anchor=tk.CENTER)
+label2 = ttk.Label(root, text='', font=("Helvetica", 12), anchor=tk.CENTER)
 label2.grid(column=1, row=5, sticky=tk.EW, padx=5, pady=5)
 
 # naam uitvoermap tonen
@@ -288,7 +290,7 @@ label2.grid(column=1, row=5, sticky=tk.EW, padx=5, pady=5)
 label4titel = ttk.Label(root, text='Uitvoer directory', font=("Helvetica", 10), anchor=tk.CENTER)
 label4titel.grid(column=1, row=6, sticky=tk.EW, padx=5, pady=5)
 
-label3 = ttk.Label(root, text=uitvoermap,font=("Helvetica", 14), anchor=tk.CENTER)
+label3 = ttk.Label(root, text=uitvoermap,font=("Helvetica", 12), anchor=tk.CENTER)
 label3.grid(column=1, row=7, sticky=tk.EW, padx=5, pady=5)
 
 # startknop
@@ -358,7 +360,7 @@ vertraging_spin_box.grid(column=0, row=3, sticky=tk.NS, padx=5, pady=5)
 label14titel = ttk.Label(root, text='Audio variatie', font=("Helvetica", 10), anchor=tk.CENTER)
 label14titel.grid(column=0, row=4, sticky=tk.EW, padx=5, pady=5)
 
-audio_variatie = tk.StringVar(value=0.7)
+audio_variatie = tk.StringVar(value=0.6)
 audio_variatie_spin_box = ttk.Spinbox(
     root,
     from_=0.0,
@@ -373,7 +375,7 @@ audio_variatie_spin_box.grid(column=0, row=5, sticky=tk.NS, padx=5, pady=5)
 label16titel = ttk.Label(root, text='Spreek variatie', font=("Helvetica", 10), anchor=tk.CENTER)
 label16titel.grid(column=0, row=6, sticky=tk.EW, padx=5, pady=5)
 
-spreek_variatie = tk.StringVar(value=0.9)
+spreek_variatie = tk.StringVar(value=0.7)
 spreek_variatie_spin_box = ttk.Spinbox(
     root,
     from_=0.0,
