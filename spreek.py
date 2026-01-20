@@ -74,6 +74,8 @@ def bestandsnaam_opschonen(naam):
     naam = naam.replace('(','_')
     naam = naam.replace(')','_')
     naam = naam.replace(' ','_')
+    naam = naam.replace("'","_")
+    naam = naam.replace('"','_')
     return naam
 
 def maak_mp3(uitvoer):
